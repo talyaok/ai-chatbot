@@ -1,0 +1,37 @@
+{
+  "name": "finlatics-smart-chatbot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Finlatics Web Development Project 3 — production-style AI Smart Chatbot with streaming, memory, RAG, and multimodal chat.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@prisma/client": "^6.16.1",
+    "bcryptjs": "^2.4.3",
+    "chromadb": "^1.10.5",
+    "formidable": "^3.5.4",
+    "next": "^14.2.15",
+    "next-auth": "^4.24.11",
+    "openai": "^4.86.1",
+    "pdf-parse": "^1.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.15",
+    "prisma": "^6.16.1"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
