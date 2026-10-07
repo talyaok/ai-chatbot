@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import ChatMessage from "./ChatMessage";
 import ChunkSourceList from "./ChunkSourceList";
 
@@ -33,6 +34,7 @@ export default function ChatWindow({
   const abortRef = useRef(null);
   const listRef = useRef(null);
   const shouldStickRef = useRef(true);
+  const router = useRouter();
 
   const mode = image ? "image" : documentId ? "rag" : "general";
   const modeLabel = mode === "rag" ? "Document chat" : mode === "image" ? "Image chat" : "General chat";
@@ -138,6 +140,42 @@ export default function ChatWindow({
       setError("");
     };
     reader.readAsDataURL(file);
+  }
+
+  async function onPickFile(file) {
+    if (!file) return;
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("PDF is too large. Maximum size is 10MB.");
+        return;
+      }
+      setLoading(true);
+      setError("");
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Could not upload PDF.");
+        }
+        const id = data.document?.id;
+        if (!id) {
+          throw new Error("Could not upload PDF.");
+        }
+        router.push(`/chat/${id}`);
+      } catch (err) {
+        setError(err.message || "Could not upload PDF.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    onPickImage(file);
   }
 
   function cancel() {
@@ -362,12 +400,13 @@ export default function ChatWindow({
             />
             {allowImages && !documentId ? (
               <label className="button button-secondary">
-                Image
+                Attach
                 <input
                   className="visually-hidden"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(event) => onPickImage(event.target.files?.[0])}
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
+                  disabled={loading}
+                  onChange={(event) => onPickFile(event.target.files?.[0])}
                 />
               </label>
             ) : null}
