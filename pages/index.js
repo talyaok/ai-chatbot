@@ -38,7 +38,7 @@ export default function HomePage() {
         </article>
         <article>
           <h2>RAG with citations</h2>
-          <p>PDFs and text files are chunked, embedded, and retrieved from Chroma before answering.</p>
+          <p>PDFs and text files are chunked, embedded, and retrieved using PostgreSQL pgvector before answering.</p>
         </article>
         <article>
           <h2>Image understanding</h2>

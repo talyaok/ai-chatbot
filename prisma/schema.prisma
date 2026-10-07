@@ -72,10 +72,9 @@ model DocumentChunk {
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   chunkIndex Int
   text       String
-  chromaId   String
+  embedding  Unsupported("vector(1536)")?
   metadata   Json?
   createdAt  DateTime @default(now())
 
   @@unique([documentId, chunkIndex])
-  @@index([chromaId])
 }

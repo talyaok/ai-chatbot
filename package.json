@@ -17,7 +17,6 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@prisma/client": "^6.16.1",
     "bcryptjs": "^2.4.3",
-    "chromadb": "^1.10.5",
     "formidable": "^3.5.4",
     "next": "^14.2.15",
     "next-auth": "^4.24.11",

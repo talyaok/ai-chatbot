@@ -31,16 +31,7 @@ export default function DocumentsPage() {
       const uploadData = await uploadResponse.json();
       if (!uploadResponse.ok) throw new Error(uploadData.error || "Upload failed.");
 
-      setNotice("File uploaded. Extracting text, chunking, and indexing…");
-      const ingestResponse = await fetch("/api/documents/ingest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: uploadData.document.id }),
-      });
-      const ingestData = await ingestResponse.json();
-      if (!ingestResponse.ok) throw new Error(ingestData.error || "Processing failed.");
-
-      setNotice(ingestData.message || "Document processed successfully.");
+      setNotice(uploadData.message || "Document processed successfully.");
       await loadDocuments();
     } catch (err) {
       setError(err.message);

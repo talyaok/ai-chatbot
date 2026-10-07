@@ -10,6 +10,7 @@ import {
 } from "../../lib/fileValidation";
 import { applySafeCors, clientKey, rateLimit } from "../../lib/http";
 import { AppError, sendJsonError } from "../../lib/errors";
+import { ingestDocument } from "../../lib/ingest";
 
 export const config = {
   api: {
@@ -62,7 +63,19 @@ export default async function handler(req, res) {
       },
     });
 
-    return res.status(201).json({ document });
+    const result = await ingestDocument({
+      document,
+      userId: user.id,
+      buffer,
+    });
+
+    return res.status(201).json({
+      document: result.document,
+      chunkCount: result.chunkCount,
+      characters: result.characters,
+      pages: result.pages,
+      message: result.message,
+    });
   } catch (error) {
     if (error?.code === "LIMIT_FILE_SIZE") {
       return sendJsonError(

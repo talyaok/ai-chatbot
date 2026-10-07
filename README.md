@@ -7,11 +7,11 @@ A production-style AI chatbot built with Next.js. It combines streaming chat, co
 - Node.js **18.17+** (Node 20 recommended; see `.nvmrc`)
 - npm
 - PostgreSQL 14+
-- A running **Chroma** server
+- PostgreSQL with the **pgvector** extension
 - An [Anthropic](https://console.anthropic.com/) API key
 - An [OpenAI](https://platform.openai.com/) API key (embeddings only)
 
-Optional: Docker, for running Chroma quickly.
+
 
 ## 2. Node version
 
@@ -52,8 +52,6 @@ Required variables:
 | `OPENAI_API_KEY` | `text-embedding-3-small` embeddings |
 | `OPENAI_EMBEDDING_MODEL` | Optional override |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `CHROMA_URL` | Chroma HTTP endpoint (default `http://localhost:8000`) |
-| `CHROMA_COLLECTION` | Collection name |
 | `NEXTAUTH_SECRET` | Random secret for sessions |
 | `NEXTAUTH_URL` | App URL, e.g. `http://localhost:3000` |
 | `ALLOWED_ORIGINS` | Optional comma-separated browser origins |
@@ -80,8 +78,7 @@ Set `DATABASE_URL`, for example:
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/finlatics_chatbot?schema=public"
 ```
 
-This app stores users, conversations, messages, documents, and chunk metadata in PostgreSQL. Embeddings live in **Chroma**, not in Postgres. The file `sql/enable-pgvector.sql` is only a reference and is not required.
-
+This app stores users, conversations, messages, documents, chunk metadata, and OpenAI embeddings in PostgreSQL using **pgvector** with cosine similarity search and an HNSW index.
 ## 6. Prisma setup / migrations
 
 ```bash
@@ -100,21 +97,6 @@ Then:
 npx prisma generate
 ```
 
-## 7. Chroma setup
-
-Local Docker example:
-
-```bash
-docker run --rm -p 8000:8000 chromadb/chroma
-```
-
-Confirm it responds, then set:
-
-```
-CHROMA_URL=http://localhost:8000
-```
-
-If Chroma is down, document search returns a clear configuration error. It does **not** fall back to fake vectors.
 
 ## 8. Anthropic API setup
 
@@ -158,7 +140,7 @@ The UI uses `POST /api/chat/stream` (SSE).
 2. Upload a PDF, `.txt`, or Markdown file.
 3. Wait for: `Document processed successfully — N chunks indexed.`
 
-Pipeline: upload → extract → chunk (~800 characters, ~100 overlap) → embed → Chroma + Postgres → status `processed`.
+Pipeline: upload → extract → chunk (~800 characters, ~100 overlap) → batch OpenAI embeddings → PostgreSQL pgvector → status `processed`.
 
 ## 14. Test RAG
 
@@ -191,7 +173,7 @@ Production checklist:
 
 - Set every variable from `.env.example` on the host.
 - Use a hosted PostgreSQL instance and run `npx prisma migrate deploy`.
-- Use a hosted Chroma instance (serverless hosts usually cannot run Chroma in-process).
+- Use PostgreSQL with the pgvector extension enabled in production.
 - Set `NEXTAUTH_URL` to the public HTTPS origin.
 - Keep `ALLOWED_ORIGINS` aligned with that origin.
 - Uploaded files are stored on local disk under `uploads/`. On ephemeral hosts (Vercel), switch storage to S3 or similar before relying on uploads in production.
@@ -219,7 +201,7 @@ Production checklist:
 - `lib/ai.js` — Anthropic client, retries, streaming
 - `lib/prompts.js` — Role / Task / Constraints / Format prompts
 - `lib/embedder.js` — OpenAI embeddings
-- `lib/vectorSearch.js` — Chroma
+- `lib/vectorSearch.js` — PostgreSQL pgvector cosine similarity search
 - `lib/claudeRAG.js` — retrieval + grounded generation
 - `lib/chunker.js` — paragraph/sentence chunking
 - `prisma/schema.prisma` — User, Conversation, Message, Document, DocumentChunk
