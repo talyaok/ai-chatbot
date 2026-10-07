@@ -24,7 +24,20 @@ export default function LoginPage() {
       setError("Invalid email or password.");
       return;
     }
-    router.push(typeof router.query.callbackUrl === "string" ? router.query.callbackUrl : "/chat");
+
+    const callbackUrl = router.query.callbackUrl;
+    const destination =
+      typeof callbackUrl === "string" && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : "/chat";
+
+    const hostname = window.location.hostname;
+    if (hostname.endsWith(".vercel.app") && hostname !== "ai-chatbot-gns7.vercel.app") {
+      window.location.assign(`https://ai-chatbot-gns7.vercel.app${destination}`);
+      return;
+    }
+
+    router.push(destination);
   }
 
   return (
