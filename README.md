@@ -2,6 +2,24 @@
 
 A production-style AI chatbot built with Next.js. It combines streaming chat, conversation memory, document RAG with citations, and multimodal image questions in one product.
 
+## Finlatics Evaluator Features
+
+**pdf-upload** — Implemented. Main files: `components/ChatWindow.jsx`, `components/PdfUploader.jsx`, `pages/api/upload.js`, `lib/extract.js`, `lib/ingest.js`. PDFs can be attached from the **main chat composer** (`Attach PDF / Image`, `accept` includes `application/pdf` and `.pdf`) or from `/documents`. Both POST the file to `/api/upload`, which extracts text with `pdf-parse` and runs ingestion in the same request.
+
+**openai-embeddings** — Implemented. Main file: `lib/embedder.js`. Document chunks and query text are embedded with the official OpenAI client using `OPENAI_API_KEY` and model `text-embedding-3-small` (`openai.embeddings.create`), including batching and deduplication on ingest.
+
+**vector-similarity-search** — Implemented. Main files: `lib/vectorSearch.js`, `prisma/schema.prisma`, `prisma/migrations/20261007_add_pgvector/migration.sql`. Chunk embeddings are stored as PostgreSQL pgvector `vector(1536)` with an HNSW `vector_cosine_ops` index. Retrieval uses the `<=>` cosine-distance operator, an explicit similarity threshold, and `topK`.
+
+**claude-rag-integration** — Implemented. Main files: `lib/claudeRAG.js`, `lib/prompts.js`, `lib/ai.js`, `pages/api/chat/stream.js`. Live document chat calls `streamAnswerWithRag`: query embedding → pgvector search → retrieved chunks inserted into a grounded Claude/Anthropic prompt (`RAG_SYSTEM_PROMPT` + `<context>`) → streamed answer.
+
+**streaming-chat** — Implemented. Main files: `pages/api/chat/stream.js`, `lib/http.js`, `lib/ai.js`, `components/ChatWindow.jsx`. The server sets `Content-Type: text/event-stream`, Claude streaming writes incremental `data:` events, and the client reads `response.body` and updates the UI token by token.
+
+**source-citations** — Implemented. Main files: `pages/api/chat/stream.js`, `lib/claudeRAG.js`, `components/ChunkSourceList.jsx`. Retrieved sources (document name, chunk index, passage text) are sent on the SSE stream and rendered as a **Sources** list under assistant messages.
+
+Complete live RAG flow:
+
+PDF upload → `pdf-parse` → chunking → OpenAI `text-embedding-3-small` → PostgreSQL pgvector `vector(1536)` → HNSW cosine similarity search → retrieved chunks → Claude/Anthropic grounded prompt → SSE streaming → source citations rendered in the chat UI.
+
 ## 1. Prerequisites
 
 - Node.js **18.17+** (Node 20 recommended; see `.nvmrc`)
@@ -136,9 +154,10 @@ The UI uses `POST /api/chat/stream` (SSE).
 
 ## 13. Test document ingestion
 
-1. Open **Documents**.
-2. Upload a PDF, `.txt`, or Markdown file.
-3. Wait for: `Document processed successfully — N chunks indexed.`
+PDFs can be attached directly from the main chat composer (**Attach PDF / Image** on `/chat`) or from **Documents**.
+
+1. In general chat, attach a PDF, or open **Documents** and upload a PDF, `.txt`, or Markdown file.
+2. Wait for: `Document processed successfully — N chunks indexed.` (chat then opens `/chat/{documentId}`).
 
 Pipeline: upload → extract → chunk (~800 characters, ~100 overlap) → batch OpenAI embeddings → PostgreSQL pgvector → status `processed`.
 
@@ -176,7 +195,7 @@ Production checklist:
 - Use PostgreSQL with the pgvector extension enabled in production.
 - Set `NEXTAUTH_URL` to the public HTTPS origin.
 - Keep `ALLOWED_ORIGINS` aligned with that origin.
-- Uploaded files are stored on local disk under `uploads/`. On ephemeral hosts (Vercel), switch storage to S3 or similar before relying on uploads in production.
+- Local development writes uploaded files under `uploads/` in the project directory. On Vercel (`process.env.VERCEL`), `lib/fileValidation.js` uses `path.join(os.tmpdir(), "aether-uploads")` because the serverless filesystem is read-only. That temp directory is **not durable** across invocations. Ingestion does not depend on re-reading disk later: `pages/api/upload.js` passes the in-memory PDF buffer into `ingestDocument` in the same request.
 - Serverless timeouts may be too short for large PDF ingestion. Prefer a Node host or a background worker for big files.
 
 ## API map
@@ -194,7 +213,7 @@ Production checklist:
 | GET/POST | `/api/conversations` | List or create |
 | GET/DELETE | `/api/conversations/:id` | Read or delete |
 | POST | `/api/register` | Create account |
-| * | `/api/auth/*` | NextAuth (starter catch-all `[...newAuth]`) |
+| * | `/api/auth/*` | NextAuth (catch-all `[...nextauth]`) |
 
 ## Project layout
 

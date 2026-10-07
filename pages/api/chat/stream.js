@@ -1,8 +1,8 @@
 import prisma, { assertDatabase } from "../../../lib/db";
 import { requireUser } from "../../../lib/authOptions";
 import { streamChatWithAI } from "../../../lib/ai";
-import { GENERAL_SYSTEM_PROMPT, RAG_SYSTEM_PROMPT, conversationTitleFromMessage } from "../../../lib/prompts";
-import { retrieveSources, buildGroundedMessages, requireQuestion } from "../../../lib/claudeRAG";
+import { GENERAL_SYSTEM_PROMPT, conversationTitleFromMessage } from "../../../lib/prompts";
+import { streamAnswerWithRag, requireQuestion } from "../../../lib/claudeRAG";
 import { toModelHistory } from "../../../lib/history";
 import {
   applySafeCors,
@@ -116,19 +116,16 @@ export default async function handler(req, res) {
     let sources = [];
 
     if (documentId) {
-      sources = await retrieveSources({ question, documentId, userId: user.id });
-      writeSse(res, { sources });
-      if (!sources.length) {
-        answer = "I could not find relevant information in the selected document for that question.";
-        writeSse(res, { text: answer });
-      } else {
-        answer = await streamChatWithAI(
-          buildGroundedMessages({ question, sources, history }),
-          RAG_SYSTEM_PROMPT,
-          res,
-          { signal: abort.signal }
-        );
-      }
+      const rag = await streamAnswerWithRag({
+        question,
+        documentId,
+        userId: user.id,
+        history,
+        res,
+        options: { signal: abort.signal },
+      });
+      answer = rag.text;
+      sources = rag.sources;
     } else {
       answer = await streamChatWithAI(
         [...history, { role: "user", content: userContent }],

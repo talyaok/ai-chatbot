@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-export default function PdfUploader({ onUpload, disabled, accept = ".pdf,.txt,.md,.markdown" }) {
+export default function PdfUploader({ onUpload, disabled, accept = "application/pdf,.pdf,.txt,.md,.markdown" }) {
   const fileInput = useRef(null);
 
   return (

@@ -399,12 +399,13 @@ export default function ChatWindow({
               }}
             />
             {allowImages && !documentId ? (
-              <label className="button button-secondary">
-                Attach
+              <label className="button button-secondary" title="Upload a PDF document or image">
+                Attach PDF / Image
                 <input
                   className="visually-hidden"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
+                  aria-label="Upload a PDF document or image"
                   disabled={loading}
                   onChange={(event) => onPickFile(event.target.files?.[0])}
                 />
